@@ -80,7 +80,7 @@ function loadBootstrapConfig_(){
       if(completed) return;
       completed=true; cleanup();
       reject(new Error('Configuration service timed out.'));
-    },20000);
+    },45000);
 
     window[callbackName]=function(data){
       if(completed) return;
