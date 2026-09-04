@@ -81,19 +81,24 @@
 
   <main class="exam-layout">
     <section class="question-card">
-      <div class="q-label" id="questionLabel"></div>
-      <div id="resourcePanel" class="resource-panel hidden"></div>
-      <h2 id="questionText"></h2>
+      <div class="question-content">
+        <div class="q-label" id="questionLabel"></div>
+        <div id="resourcePanel" class="resource-panel hidden"></div>
+        <h2 id="questionText"></h2>
 
-      <div id="options"></div>
+        <div id="options"></div>
 
-      <div id="questionNav" class="question-nav"></div>
-
-      <div class="exam-actions">
-        <button onclick="previousQuestion()">Previous</button>
-        <button onclick="nextQuestion()">Next</button>
-        <button class="danger" onclick="manualSubmit()">Submit Exam</button>
+        <div class="exam-actions">
+          <button onclick="previousQuestion()">Previous</button>
+          <button onclick="nextQuestion()">Next</button>
+          <button class="danger" onclick="manualSubmit()">Submit Exam</button>
+        </div>
       </div>
+
+      <aside class="question-nav-panel" aria-label="Question navigator">
+        <div class="question-nav-title">Questions</div>
+        <div id="questionNav" class="question-nav"></div>
+      </aside>
     </section>
   </main>
 </section>
@@ -110,7 +115,6 @@
   <video id="cameraVideo" autoplay playsinline muted></video>
   <div class="camera-label">● CAMERA MONITORING ACTIVE</div>
 </aside>
-
 
 <div id="busyOverlay" class="busy-overlay hidden" role="status" aria-live="assertive" aria-busy="true">
   <div class="busy-box">
