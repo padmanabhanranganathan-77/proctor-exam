@@ -5,7 +5,7 @@
  * Replace this with the PERSONAL Apps Script /exec URL.
  */
 const APPS_SCRIPT_WEB_APP_URL =
-  'https://script.google.com/macros/s/AKfycbwHKOa8BaWfVWoqf0IFhZxayXNfNRifoep4If9H_ToE37V_5QXRsdnfKmqIpAQg1gdE7g/exec';
+  'https://script.google.com/macros/s/AKfycbyXNue5-7Xqt_7UN15aAVQ_xANOd5TA80hA4BmHIxyP_SYqrciRPg-4PSjRoG8EQKFdVQ/exec';
 
 let rpcCounter = 0;
 
