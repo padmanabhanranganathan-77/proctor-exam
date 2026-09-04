@@ -1,5 +1,5 @@
 /*
- * PROCTOR EXAM v5.1 - SAFE SUBMISSION UI
+ * PROCTOR EXAM v5.3 - CONCURRENCY SAFE UI
  *
  * IMPORTANT:
  * Replace this with the PERSONAL Apps Script /exec URL.
@@ -27,6 +27,9 @@ let lastAwayCloseAt = 0;
 let cameraViolationOpen = false;
 let fullscreenViolationOpen = false;
 let submissionInProgress = false;
+let pendingSavePromises = new Set();
+let answersDirty = false;
+let answerMutationVersion = 0;
 
 /* ==================== DIRECT RPC / JSONP ==================== */
 
@@ -507,12 +510,21 @@ function renderQuestion(){
 
     radio.addEventListener('change', ()=>{
       answers[q.id] = o.key;
+      answersDirty = true;
+      answerMutationVersion++;
       renderQuestionNav();
-      rpc('saveAnswer', {
-        sessionId: session.sessionId,
-        questionId: q.id,
-        answer: o.key
-      }).catch(()=>{});
+
+      const savePromise = rpcWithRetry_(
+        'saveAnswer',
+        {
+          sessionId: session.sessionId,
+          questionId: q.id,
+          answer: o.key
+        },
+        {timeoutMs:15000, retries:2, baseDelay:450, maxDelay:2500}
+      );
+
+      trackSavePromise_(savePromise).catch(()=>{});
     });
 
     const text = document.createElement('span');
@@ -738,39 +750,105 @@ function startTimer(){
 }
 
 function startAutosave(){
-  clearInterval(
-    autosaveHandle
-  );
+  clearTimeout(autosaveHandle);
 
-  const seconds =
-    Math.max(
-      5,
-      Number(
-        publicConfig.autosaveSeconds ||
-        10
-      )
-    );
+  const scheduleNext = ()=>{
+    if(!examActive || submissionInProgress){
+      return;
+    }
 
-  autosaveHandle =
-    setInterval(
-      ()=>{
-        if(!examActive){
-          return;
-        }
+    // Jitter prevents many candidates from autosaving at the same instant.
+    const delayMs = 25000 + Math.floor(Math.random() * 10000);
 
-        rpc(
-          'saveAnswersBulk',
-          {
-            sessionId:
-              session.sessionId,
+    autosaveHandle = setTimeout(async ()=>{
+      if(!examActive || submissionInProgress){
+        return;
+      }
 
-            answers:
-              answers
+      if(answersDirty){
+        const versionAtStart = answerMutationVersion;
+
+        try{
+          const p = rpcWithRetry_(
+            'saveAnswersBulk',
+            {
+              sessionId: session.sessionId,
+              answers: answers
+            },
+            {timeoutMs:20000, retries:2, baseDelay:700, maxDelay:3000}
+          );
+
+          await trackSavePromise_(p);
+
+          if(versionAtStart === answerMutationVersion){
+            answersDirty = false;
           }
-        ).catch(()=>{});
-      },
-      seconds * 1000
-    );
+        }catch(e){
+          // Keep answersDirty=true so the next cycle retries automatically.
+        }
+      }
+
+      scheduleNext();
+    }, delayMs);
+  };
+
+  scheduleNext();
+}
+
+function trackSavePromise_(promise){
+  pendingSavePromises.add(promise);
+
+  const cleanup = ()=>pendingSavePromises.delete(promise);
+  promise.then(cleanup, cleanup);
+
+  return promise;
+}
+
+async function waitForPendingSaves_(maxWaitMs){
+  const started = Date.now();
+
+  while(pendingSavePromises.size){
+    const pending = Array.from(pendingSavePromises);
+    const remaining = Math.max(0, Number(maxWaitMs || 10000) - (Date.now() - started));
+
+    if(remaining <= 0){
+      break;
+    }
+
+    await Promise.race([
+      Promise.allSettled(pending),
+      delay(Math.min(remaining, 1200))
+    ]);
+  }
+}
+
+async function rpcWithRetry_(action, payload, options){
+  options = options || {};
+
+  const retries = Math.max(0, Number(options.retries || 0));
+  const timeoutMs = Math.max(5000, Number(options.timeoutMs || 30000));
+  const baseDelay = Math.max(100, Number(options.baseDelay || 600));
+  const maxDelay = Math.max(baseDelay, Number(options.maxDelay || 5000));
+
+  let lastError = null;
+
+  for(let attempt = 0; attempt <= retries; attempt++){
+    try{
+      return await rpc(action, payload, timeoutMs);
+    }catch(err){
+      lastError = err;
+
+      if(attempt >= retries){
+        break;
+      }
+
+      const exponential = Math.min(maxDelay, baseDelay * Math.pow(2, attempt));
+      const jitter = Math.floor(Math.random() * Math.max(250, exponential));
+      await delay(exponential + jitter);
+    }
+  }
+
+  throw lastError || new Error('Server request failed.');
 }
 
 /* ==================== PROCTOR ==================== */
@@ -1217,12 +1295,19 @@ async function submitExam(reason){
   showSubmitLoader('Submitting Assessment…');
 
   clearInterval(timerHandle);
-  clearInterval(autosaveHandle);
+  clearTimeout(autosaveHandle);
 
   try{
+    // Finish any in-flight answer/autosave request before the final snapshot.
+    // This prevents the last selected question racing the final submit.
+    await waitForPendingSaves_(10000);
+
+    // Small random stagger smooths a simultaneous 50-candidate submit spike.
+    await delay(300 + Math.floor(Math.random() * 4200));
+
     // Final submission can legitimately take longer than a normal autosave.
     // Give Apps Script up to two minutes before treating it as delayed.
-    const result = await rpc(
+    const result = await rpcWithRetry_(
       'submitExam',
       {
         sessionId: session.sessionId,
@@ -1230,7 +1315,7 @@ async function submitExam(reason){
         reason: reason,
         violationCount: violationCount
       },
-      120000
+      {timeoutMs:60000, retries:2, baseDelay:1200, maxDelay:6000}
     );
 
     submissionInProgress = false;
@@ -1304,13 +1389,16 @@ async function terminateExam(reason){
     timerHandle
   );
 
-  clearInterval(
+  clearTimeout(
     autosaveHandle
   );
 
   try{
+    await waitForPendingSaves_(8000);
+    await delay(200 + Math.floor(Math.random() * 1800));
+
     const result =
-      await rpc(
+      await rpcWithRetry_(
         'terminateExam',
         {
           sessionId:
@@ -1325,7 +1413,7 @@ async function terminateExam(reason){
           violationCount:
             violationCount
         },
-        120000
+        {timeoutMs:60000, retries:2, baseDelay:1000, maxDelay:5000}
       );
 
     finishExam(
