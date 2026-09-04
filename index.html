@@ -1,10 +1,126 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proctored Interview Assessment</title><link rel="stylesheet" href="style.css"></head><body>
-<iframe id="bridgeFrame" class="bridge" title="Backend bridge"></iframe>
-<section id="loadingView" class="center"><div class="card"><h1>Proctored Interview Assessment</h1><div class="status checking">Connecting to examination server…</div></div></section>
-<section id="loginView" class="center hidden"><div class="card"><h1 id="appTitle">Proctored Interview Assessment</h1><p class="muted">Camera access is mandatory. Your live camera preview remains visible during the assessment. This version does not record or upload video.</p><div id="cameraStatus" class="status checking">🟡 Camera has not been checked.</div><button id="cameraBtn" class="primary" onclick="enableCamera()">Enable Camera</button><div id="loginFields" class="hidden"><label>Candidate ID</label><input id="candidateId" autocomplete="off"><label>PIN</label><input id="pin" type="password" autocomplete="off"><button class="primary full" onclick="loginCandidate()">Continue</button></div><div id="loginMsg" class="msg"></div></div></section>
-<section id="readyView" class="center hidden"><div class="card"><h2>System Check Complete</h2><p><b id="readyCandidate"></b></p><div class="status good">🟢 Camera active</div><div class="status good">🟢 Examination server connected</div><div class="status good">🟢 Candidate verified</div><p class="muted">Clicking Start Exam enters fullscreen. Leaving the window, exiting fullscreen, stopping the camera, or attempting restricted actions may be logged.</p><button class="primary full" onclick="beginExam()">Start Exam</button><div id="readyMsg" class="msg"></div></div></section>
-<section id="examView" class="hidden"><header class="topbar"><div><b id="candidateDisplay"></b> · Q <span id="qNum">1</span>/<span id="qTotal">0</span></div><div class="timer" id="timer">--:--</div><div class="pill">Violations: <b id="violationCount">0</b></div></header><main class="exam"><div class="question"><div id="questionLabel" class="muted"></div><h2 id="questionText"></h2><div id="options"></div><div id="questionNav" class="qnav"></div><div class="actions"><button onclick="previousQuestion()">Previous</button><button onclick="nextQuestion()">Next</button><button class="danger" onclick="manualSubmit()">Submit Exam</button></div></div></main></section>
-<section id="doneView" class="center hidden"><div class="card"><h1>Assessment Submitted</h1><p>Your responses have been submitted successfully.</p><p id="scoreText"></p></div></section>
-<aside id="cameraPanel" class="camera hidden"><video id="cameraVideo" autoplay playsinline muted></video><div>● CAMERA MONITORING ACTIVE</div></aside>
-<div id="warningOverlay" class="overlay hidden"><div><h1>⚠ Proctor Warning</h1><p id="warningMessage"></p><button onclick="closeWarning()">Return to Exam</button></div></div>
-<script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Proctored Interview Assessment</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="rpcHost" class="rpc-host"></div>
+
+<section id="loadingView" class="center-screen">
+  <div class="card narrow">
+    <h1>Proctored Interview Assessment</h1>
+    <div class="status checking">Connecting to examination server…</div>
+  </div>
+</section>
+
+<section id="loginView" class="center-screen hidden">
+  <div class="card narrow">
+    <h1 id="appTitle">Proctored Interview Assessment</h1>
+
+    <p class="muted">
+      Camera access is mandatory. Your live camera preview remains visible during the assessment.
+      This version does not record or upload video.
+    </p>
+
+    <div id="cameraStatus" class="status checking">
+      🟡 Camera has not been checked.
+    </div>
+
+    <button class="primary" onclick="enableCamera()">Enable Camera</button>
+
+    <div id="loginFields" class="hidden">
+      <label>Candidate ID</label>
+      <input id="candidateId" autocomplete="off">
+
+      <label>PIN</label>
+      <input id="pin" type="password" autocomplete="off">
+
+      <button class="primary full" onclick="loginCandidate()">Continue</button>
+    </div>
+
+    <div id="loginMsg"></div>
+  </div>
+</section>
+
+<section id="readyView" class="center-screen hidden">
+  <div class="card narrow">
+    <h2>System Check Complete</h2>
+
+    <p><b id="readyCandidate"></b></p>
+
+    <div class="status good">🟢 Camera active</div>
+    <div class="status good">🟢 Examination server connected</div>
+    <div class="status good">🟢 Candidate verified</div>
+
+    <p class="muted">
+      Start Exam will enter fullscreen mode. Leaving the exam window,
+      exiting fullscreen, stopping the camera, or attempting restricted actions may be logged.
+    </p>
+
+    <button class="primary full" onclick="beginExam()">Start Exam</button>
+    <div id="readyMsg"></div>
+  </div>
+</section>
+
+<section id="examView" class="hidden">
+  <header class="topbar">
+    <div>
+      <b id="candidateDisplay"></b>
+      <span class="small">
+        · Question <span id="qNum">1</span>/<span id="qTotal">0</span>
+      </span>
+    </div>
+
+    <div class="timer" id="timer">--:--</div>
+
+    <div class="violation">
+      Violations: <b id="violationCount">0</b>
+    </div>
+  </header>
+
+  <main class="exam-layout">
+    <section class="question-card">
+      <div class="q-label" id="questionLabel"></div>
+      <h2 id="questionText"></h2>
+
+      <div id="options"></div>
+
+      <div id="questionNav" class="question-nav"></div>
+
+      <div class="exam-actions">
+        <button onclick="previousQuestion()">Previous</button>
+        <button onclick="nextQuestion()">Next</button>
+        <button class="danger" onclick="manualSubmit()">Submit Exam</button>
+      </div>
+    </section>
+  </main>
+</section>
+
+<section id="doneView" class="center-screen hidden">
+  <div class="card narrow">
+    <h1>Assessment Submitted</h1>
+    <p>Your responses have been submitted successfully.</p>
+    <p id="scoreText"></p>
+  </div>
+</section>
+
+<aside id="cameraPanel" class="camera-panel hidden">
+  <video id="cameraVideo" autoplay playsinline muted></video>
+  <div class="camera-label">● CAMERA MONITORING ACTIVE</div>
+</aside>
+
+<div id="warningOverlay" class="warning-overlay hidden">
+  <div class="warning-box">
+    <h1>⚠ Proctor Warning</h1>
+    <p id="warningMessage"></p>
+    <button onclick="closeWarning()">Return to Exam</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,1 +1,49 @@
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f3f5f7;color:#111}.hidden{display:none!important}.bridge{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;border:0}.center{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(720px,96vw);background:#fff;border-radius:16px;padding:26px;box-shadow:0 4px 22px #0002}.muted{color:#626b76;line-height:1.5}.status{padding:13px 15px;border-radius:10px;margin:12px 0}.checking{background:#fff4d6;border:1px solid #e2bd52}.good{background:#e6f7e9;border:1px solid #6dae77}.bad{background:#ffe4e8;border:1px solid #dc6d7d}.msg{margin-top:12px;color:#a4001c}label{display:block;font-weight:700;margin-top:14px}input{width:100%;padding:12px;border:1px solid #c8ccd1;border-radius:8px;margin-top:7px;font-size:16px}button{border:0;border-radius:9px;padding:11px 17px;font-size:15px;font-weight:700;cursor:pointer}.primary{background:#111;color:#fff}.danger{background:#a4001c;color:#fff}.full{width:100%;margin-top:18px}.topbar{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #ddd;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}.timer{font-size:24px;font-weight:800}.pill{padding:7px 11px;background:#eee;border-radius:999px}.exam{max-width:1050px;margin:auto;padding:24px 250px 24px 24px}.question{background:#fff;border-radius:14px;padding:24px;box-shadow:0 3px 16px #0001}.option{display:flex;gap:10px;border:1px solid #d8dce1;padding:13px;border-radius:10px;margin:10px 0;cursor:pointer}.option input{width:auto;margin:3px 0 0}.qnav{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0}.qnav button{min-width:40px;padding:8px;background:#e9ecef}.qnav .current{outline:2px solid #111}.qnav .answered{background:#dff5e4}.actions{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}.camera{position:fixed;right:15px;bottom:15px;width:220px;background:#111;color:#fff;border-radius:12px;overflow:hidden;z-index:1000;box-shadow:0 4px 18px #0006;text-align:center;font-size:11px;font-weight:700}.camera video{width:100%;height:150px;object-fit:cover;background:#222;display:block}.camera div{padding:8px}.overlay{position:fixed;inset:0;background:#000e;z-index:9999;display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px}.overlay button{background:#fff;color:#111}@media(max-width:760px){.exam{padding:16px}.camera{width:140px;right:8px;bottom:8px}.camera video{height:95px}.topbar{font-size:13px}.timer{font-size:19px}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:#f3f5f7;color:#111}
+.hidden{display:none!important}
+.rpc-host{position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;overflow:hidden}
+.center-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:#fff;border-radius:16px;padding:26px;box-shadow:0 4px 22px rgba(0,0,0,.10)}
+.card.narrow{width:min(720px,96vw)}
+h1,h2{margin-top:0}
+.muted{color:#5e6670;line-height:1.5}
+label{font-weight:700;display:block;margin-top:14px}
+input{width:100%;padding:12px;border:1px solid #c8ccd1;border-radius:8px;margin-top:7px;font-size:16px}
+button{border:0;border-radius:9px;padding:11px 17px;font-size:15px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.primary{background:#111;color:#fff}
+.danger{background:#a4001c;color:#fff}
+.full{width:100%;margin-top:18px}
+.status{padding:13px 15px;border-radius:10px;margin:12px 0;line-height:1.45}
+.checking{background:#fff4d6;border:1px solid #e2bd52}
+.good{background:#e6f7e9;border:1px solid #6dae77}
+.bad{background:#ffe4e8;border:1px solid #dc6d7d}
+.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;border-bottom:1px solid #ddd;padding:12px 18px}
+.timer{font-size:24px;font-weight:800}
+.violation{padding:7px 11px;background:#eee;border-radius:999px}
+.small{font-size:13px;color:#666}
+.exam-layout{max-width:1050px;margin:auto;padding:24px 250px 24px 24px}
+.question-card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 3px 16px rgba(0,0,0,.08)}
+.q-label{color:#667085;font-size:14px;margin-bottom:7px}
+.option{display:flex;gap:10px;align-items:flex-start;border:1px solid #d8dce1;padding:13px;border-radius:10px;margin:10px 0;cursor:pointer}
+.option:hover{background:#fafafa}
+.option input{width:auto;margin:3px 0 0 0}
+.question-nav{display:flex;flex-wrap:wrap;gap:7px;margin:20px 0}
+.question-nav button{min-width:40px;padding:8px;background:#e9ecef}
+.question-nav button.current{outline:2px solid #111}
+.question-nav button.answered{background:#dff5e4}
+.exam-actions{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-top:18px}
+.camera-panel{position:fixed;right:15px;bottom:15px;width:220px;background:#111;color:#fff;border-radius:12px;overflow:hidden;z-index:1000;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+.camera-panel video{width:100%;height:150px;display:block;object-fit:cover;background:#222}
+.camera-label{font-size:11px;padding:8px;text-align:center;font-weight:700}
+.warning-overlay{position:fixed;inset:0;background:rgba(0,0,0,.87);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;color:#fff;text-align:center}
+.warning-box{max-width:650px}
+.warning-box button{background:#fff;color:#111;margin-top:14px}
+#loginMsg,#readyMsg{margin-top:12px;color:#a4001c}
+@media(max-width:760px){
+  .exam-layout{padding:16px}
+  .camera-panel{width:140px;right:8px;bottom:8px}
+  .camera-panel video{height:95px}
+  .topbar{font-size:13px}
+  .timer{font-size:19px}
+}
