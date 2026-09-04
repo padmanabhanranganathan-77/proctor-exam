@@ -1,11 +1,11 @@
 /*
- * PROCTOR EXAM v4.0 - DIRECT RPC
+ * PROCTOR EXAM v4.1 - DIRECT RPC
  *
  * IMPORTANT:
  * Replace this with the PERSONAL Apps Script /exec URL.
  */
 const APPS_SCRIPT_WEB_APP_URL =
-  'https://script.google.com/macros/s/AKfycbxIDWbBNVLfnb9Sz4SVmYH-NXctIZtNR92E4gH1b6UOucxJYrWh8GQT5JpemzMSuXIkfA/exec';
+  'PASTE_YOUR_PERSONAL_APPS_SCRIPT_EXEC_URL_HERE';
 
 let rpcCounter = 0;
 
@@ -1087,6 +1087,27 @@ setInterval(
   3000
 );
 
+function showSubmitLoader(message){
+  const overlay = document.getElementById('submitOverlay');
+  if(!overlay){
+    return;
+  }
+
+  const heading = overlay.querySelector('h2');
+  if(heading && message){
+    heading.textContent = message;
+  }
+
+  overlay.classList.remove('hidden');
+}
+
+function hideSubmitLoader(){
+  const overlay = document.getElementById('submitOverlay');
+  if(overlay){
+    overlay.classList.add('hidden');
+  }
+}
+
 /* ==================== SUBMIT ==================== */
 
 function manualSubmit(){
@@ -1108,6 +1129,8 @@ async function submitExam(reason){
 
   examActive =
     false;
+
+  showSubmitLoader('Submitting Assessment…');
 
   clearInterval(
     timerHandle
@@ -1141,11 +1164,14 @@ async function submitExam(reason){
     );
 
   }catch(err){
+    hideSubmitLoader();
+
     examActive =
       true;
 
     alert(
-      err.message
+      'Submission could not be completed. Please try again.\n\n' +
+      (err.message || '')
     );
   }
 }
@@ -1157,6 +1183,8 @@ async function terminateExam(reason){
 
   examActive =
     false;
+
+  showSubmitLoader('Finalizing Assessment…');
 
   clearInterval(
     timerHandle
@@ -1195,6 +1223,8 @@ async function terminateExam(reason){
 }
 
 function finishExam(result){
+  hideSubmitLoader();
+
   try{
     if(
       document.fullscreenElement

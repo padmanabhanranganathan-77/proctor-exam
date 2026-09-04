@@ -46,3 +46,39 @@ button:disabled{opacity:.45;cursor:not-allowed}
   .topbar{font-size:13px}
   .timer{font-size:19px}
 }
+
+
+.submit-overlay{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(243,245,247,.96);
+  text-align:center
+}
+.submit-box{
+  width:min(520px,92vw);
+  background:#fff;
+  border-radius:16px;
+  padding:34px 28px;
+  box-shadow:0 8px 32px rgba(0,0,0,.14)
+}
+.submit-box h2{margin:16px 0 10px}
+.submit-box p{margin:6px 0;color:#5e6670;line-height:1.45}
+.submit-note{font-size:13px;font-weight:700}
+.submit-spinner{
+  width:54px;
+  height:54px;
+  margin:0 auto;
+  border:6px solid #e3e6e9;
+  border-top-color:#111;
+  border-radius:50%;
+  animation:submitSpin .85s linear infinite
+}
+@keyframes submitSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+  .submit-spinner{animation-duration:1.8s}
+}
