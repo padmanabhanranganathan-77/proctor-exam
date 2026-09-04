@@ -21,7 +21,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .timer{font-size:24px;font-weight:800}
 .violation{padding:7px 11px;background:#eee;border-radius:999px}
 .small{font-size:13px;color:#666}
-.exam-layout{max-width:1050px;margin:auto;padding:24px 250px 24px 24px}
+
+/* v5.8: use the screen width efficiently; keep only a camera-safe gutter on the right */
+.exam-layout{
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:24px 270px 24px 24px;
+}
 .question-card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 3px 16px rgba(0,0,0,.08)}
 .q-label{color:#667085;font-size:14px;margin-bottom:7px}
 .option{display:flex;gap:10px;align-items:flex-start;border:1px solid #d8dce1;padding:13px;border-radius:10px;margin:10px 0;cursor:pointer}
@@ -59,49 +66,42 @@ button:disabled{opacity:.45;cursor:not-allowed}
 @media (prefers-reduced-motion:reduce){.busy-spinner{animation-duration:1.8s}}
 
 /* ===== shared question resources ===== */
-.resource-panel{margin:12px 0 18px;padding:14px;background:#f8fafc;border:1px solid #d9e1e8;border-radius:12px}
-.resource-title{margin:0 0 6px;font-size:17px;line-height:1.3}
-.resource-instructions{margin:0 0 10px;color:#56606b;font-size:14px;line-height:1.45}
-
-/* Passages may scroll because they can be very long. */
+.resource-panel{margin:14px 0 22px;padding:18px;background:#f8fafc;border:1px solid #d9e1e8;border-radius:12px}
+.resource-title{margin:0 0 8px;font-size:17px;line-height:1.35}
+.resource-instructions{margin:0 0 14px;color:#56606b;font-size:14px;line-height:1.5}
 .resource-passage{max-height:38vh;overflow:auto;background:#fff;border:1px solid #e1e5e9;border-radius:9px;padding:16px;line-height:1.65;font-size:15px}
 .resource-passage p{margin:0 0 13px}
 .resource-passage p:last-child{margin-bottom:0}
 
-/* IMPORTANT: tables must show ALL rows — no internal vertical scrolling. */
-.resource-table-wrap{
+/* v5.8: table resources must never use an internal vertical scroller */
+.resource-panel .resource-table-wrap{
+  display:block!important;
   height:auto!important;
   max-height:none!important;
   min-height:0!important;
-  overflow:visible!important;
+  overflow-x:auto!important;
+  overflow-y:visible!important;
   background:#fff;
   border:1px solid #e1e5e9;
-  border-radius:9px
+  border-radius:9px;
 }
 .resource-table{
   width:100%;
   border-collapse:collapse;
   min-width:0!important;
-  font-size:13.5px
+  font-size:14px;
 }
-.resource-table th,.resource-table td{
-  border:1px solid #d8dde3;
-  padding:7px 8px;
-  text-align:center;
-  vertical-align:middle
-}
-.resource-table th{
-  position:static!important;
-  top:auto!important;
-  background:#eef2f6;
-  font-weight:800;
-  z-index:auto!important
-}
+.resource-table th,.resource-table td{border:1px solid #d8dde3;padding:8px 9px;text-align:center;vertical-align:middle}
+.resource-table th{position:static!important;top:auto!important;background:#eef2f6;font-weight:800;z-index:auto!important}
 .resource-table td:first-child,.resource-table th:first-child{text-align:left;font-weight:700}
-.grade-cell{min-width:130px;line-height:1.3}
-.resource-note{margin:8px 10px 10px;color:#5e6670;font-size:12px;line-height:1.4}
+.grade-cell{min-width:130px;line-height:1.35}
+.resource-note{margin:10px 12px 12px;color:#5e6670;font-size:12px;line-height:1.45}
 .resource-raw{white-space:pre-wrap;margin:0;padding:14px;font-family:Arial,sans-serif;line-height:1.5}
 
+@media(max-width:1100px){
+  .exam-layout{padding:18px 235px 18px 18px}
+  .camera-panel{width:200px}
+}
 @media(max-width:760px){
   .exam-layout{padding:16px}
   .camera-panel{width:140px;right:8px;bottom:8px}
@@ -110,7 +110,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
   .timer{font-size:19px}
   .resource-passage{max-height:32vh}
   .resource-panel{padding:12px}
-  .resource-table-wrap{height:auto!important;max-height:none!important;overflow:visible!important}
-  .resource-table{font-size:12px;min-width:0!important}
+  .resource-panel .resource-table-wrap{height:auto!important;max-height:none!important;overflow-x:auto!important;overflow-y:visible!important}
+  .resource-table{font-size:12px}
   .resource-table th,.resource-table td{padding:6px 5px}
 }
