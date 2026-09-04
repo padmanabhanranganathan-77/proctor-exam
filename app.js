@@ -1,11 +1,13 @@
 /*
- * PROCTOR EXAM v5.3 - CONCURRENCY SAFE UI
+ * PROCTOR EXAM v5.7 - DYNAMIC BOOTSTRAP CONFIG
  *
- * IMPORTANT:
- * Replace this with the PERSONAL Apps Script /exec URL.
+ * Actual exam backend URL is loaded at runtime from the bootstrap service.
  */
-const APPS_SCRIPT_WEB_APP_URL =
-  'https://script.google.com/macros/s/AKfycbwW_ykLNmJ5wESksh_nKgUIDIOHJ1HtDSAHiRXQJoK_642uW7Oddznbv5EIxGUrLdYKPg/exec';
+const BOOTSTRAP_WEB_APP_URL =
+  'https://script.google.com/macros/s/AKfycbxJFDgcfVPi5NmVJhfpN1dGEFBPZ_Lx9VcQiZjXQigPFny09JpFeMTV_y02QCaalSpm/exec';
+
+let APPS_SCRIPT_WEB_APP_URL = '';
+let bootstrapConfig = null;
 
 let rpcCounter = 0;
 
@@ -23,6 +25,7 @@ let autosaveHandle = null;
 
 let awayStartedAt = null;
 let awayReason = null;
+let awayTimeoutHandle = null;
 let lastAwayCloseAt = 0;
 let cameraViolationOpen = false;
 let fullscreenViolationOpen = false;
@@ -34,28 +37,72 @@ let answerMutationVersion = 0;
 /* ==================== DIRECT RPC / JSONP ==================== */
 
 window.addEventListener('load', async function(){
-  if(APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_')){
-    showFatal(
-      'Administrator setup incomplete: Apps Script Web App URL is missing in app.js.'
-    );
-    return;
-  }
-
   try{
+    bootstrapConfig = await loadBootstrapConfig_();
+    APPS_SCRIPT_WEB_APP_URL = String(bootstrapConfig.examApiUrl || '').trim();
+
+    if(!APPS_SCRIPT_WEB_APP_URL){
+      throw new Error('Examination service URL was not provided by the configuration service.');
+    }
+
+    if(bootstrapConfig.maintenanceMode){
+      showFatal('The assessment is temporarily unavailable. Please contact the administrator.');
+      return;
+    }
+
     publicConfig = await rpc('getPublicConfig', {});
+    publicConfig.maxViolations =
+      Number(bootstrapConfig.maxViolations || publicConfig.maxViolations || 3);
+    publicConfig.awayTimeoutSeconds =
+      Number(bootstrapConfig.awayTimeoutSeconds || 30);
 
     document.getElementById('appTitle').textContent =
       publicConfig.appTitle || 'Proctored Interview Assessment';
 
     showView('loginView');
-
   }catch(err){
-    showFatal(
-      'Unable to connect to examination server. ' +
-      (err.message || '')
-    );
+    showFatal('Unable to connect to examination server. ' + (err.message || ''));
   }
 });
+
+function loadBootstrapConfig_(){
+  return new Promise((resolve,reject)=>{
+    const callbackName='__proctorBootstrap_'+Date.now()+'_'+Math.floor(Math.random()*1000000);
+    const script=document.createElement('script');
+    let completed=false;
+
+    const cleanup=()=>{
+      try{ delete window[callbackName]; }catch(e){ window[callbackName]=undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+    };
+
+    const timeout=setTimeout(()=>{
+      if(completed) return;
+      completed=true; cleanup();
+      reject(new Error('Configuration service timed out.'));
+    },20000);
+
+    window[callbackName]=function(data){
+      if(completed) return;
+      completed=true; clearTimeout(timeout); cleanup();
+      if(data && data.ok && data.config) resolve(data.config);
+      else reject(new Error((data && data.error)||'Unable to load examination configuration.'));
+    };
+
+    script.onerror=function(){
+      if(completed) return;
+      completed=true; clearTimeout(timeout); cleanup();
+      reject(new Error('Unable to reach configuration service.'));
+    };
+
+    const params=new URLSearchParams();
+    params.set('callback',callbackName);
+    params.set('_',String(Date.now()));
+    script.async=true;
+    script.src=BOOTSTRAP_WEB_APP_URL+'?'+params.toString();
+    document.head.appendChild(script);
+  });
+}
 
 function rpc(action, payload, timeoutMs){
   return new Promise((resolve, reject)=>{
@@ -964,6 +1011,29 @@ function beginAway(
     reason,
     details
   );
+
+  if(!examActive || submissionInProgress) return;
+
+  clearTimeout(awayTimeoutHandle);
+
+  const timeoutSeconds = Math.max(
+    1,
+    Number(
+      (bootstrapConfig && bootstrapConfig.awayTimeoutSeconds) ||
+      (publicConfig && publicConfig.awayTimeoutSeconds) ||
+      30
+    )
+  );
+
+  awayTimeoutHandle = setTimeout(()=>{
+    if(examActive && !submissionInProgress && awayStartedAt !== null){
+      terminateExam(
+        'Candidate remained away from the assessment for ' +
+        timeoutSeconds +
+        ' seconds.'
+      );
+    }
+  }, timeoutSeconds * 1000);
 }
 
 function endAway(){
@@ -973,6 +1043,9 @@ function endAway(){
   ){
     return;
   }
+
+  clearTimeout(awayTimeoutHandle);
+  awayTimeoutHandle = null;
 
   const seconds =
     Math.max(
@@ -1296,6 +1369,8 @@ async function submitExam(reason){
 
   clearInterval(timerHandle);
   clearTimeout(autosaveHandle);
+  clearTimeout(awayTimeoutHandle);
+  awayTimeoutHandle = null;
 
   try{
     // Finish any in-flight answer/autosave request before the final snapshot.
@@ -1392,6 +1467,9 @@ async function terminateExam(reason){
   clearTimeout(
     autosaveHandle
   );
+
+  clearTimeout(awayTimeoutHandle);
+  awayTimeoutHandle = null;
 
   try{
     await waitForPendingSaves_(8000);
