@@ -4,7 +4,7 @@
  * Actual exam backend URL is loaded at runtime from the bootstrap service.
  */
 const BOOTSTRAP_WEB_APP_URL =
-  'https://script.google.com/macros/s/AKfycbxJFDgcfVPi5NmVJhfpN1dGEFBPZ_Lx9VcQiZjXQigPFny09JpFeMTV_y02QCaalSpm/exec';
+  'https://script.google.com/macros/s/AKfycbyoL1hfJxf3vPhe6nMKnNH0Xc7aYR8do-TkT5dvDxuePAWnk-C9hFb9uWYsM4EcN5TH/exec';
 
 let APPS_SCRIPT_WEB_APP_URL = '';
 let bootstrapConfig = null;
