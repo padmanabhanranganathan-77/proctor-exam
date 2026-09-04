@@ -89,3 +89,20 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .busy-spinner{width:54px;height:54px;margin:0 auto;border:6px solid #e3e6e9;border-top-color:#111;border-radius:50%;animation:busySpin .85s linear infinite}
 @keyframes busySpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.busy-spinner{animation-duration:1.8s}}
+
+
+/* ===== v5 shared question resources ===== */
+.resource-panel{margin:14px 0 22px;padding:18px;background:#f8fafc;border:1px solid #d9e1e8;border-radius:12px}
+.resource-title{margin:0 0 8px;font-size:17px;line-height:1.35}
+.resource-instructions{margin:0 0 14px;color:#56606b;font-size:14px;line-height:1.5}
+.resource-passage{max-height:38vh;overflow:auto;background:#fff;border:1px solid #e1e5e9;border-radius:9px;padding:16px;line-height:1.65;font-size:15px}
+.resource-passage p{margin:0 0 13px}.resource-passage p:last-child{margin-bottom:0}
+.resource-table-wrap{overflow:auto;max-height:42vh;background:#fff;border:1px solid #e1e5e9;border-radius:9px}
+.resource-table{width:100%;border-collapse:collapse;min-width:650px;font-size:14px}
+.resource-table th,.resource-table td{border:1px solid #d8dde3;padding:9px 10px;text-align:center;vertical-align:middle}
+.resource-table th{position:sticky;top:0;background:#eef2f6;font-weight:800;z-index:1}
+.resource-table td:first-child,.resource-table th:first-child{text-align:left;font-weight:700}
+.grade-cell{min-width:150px;line-height:1.4}
+.resource-note{margin:10px 12px 12px;color:#5e6670;font-size:12px;line-height:1.45}
+.resource-raw{white-space:pre-wrap;margin:0;padding:14px;font-family:Arial,sans-serif;line-height:1.5}
+@media(max-width:760px){.resource-passage{max-height:32vh}.resource-table-wrap{max-height:36vh}.resource-panel{padding:12px}}

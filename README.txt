@@ -1,15 +1,17 @@
-Proctor Exam v4.2 - GitHub files only
+PROCTOR EXAM v5.0 - GitHub Pages frontend
 
-Apps Script URL embedded in app.js:
-https://script.google.com/macros/s/AKfycbxIDWbBNVLfnb9Sz4SVmYH-NXctIZtNR92E4gH1b6UOucxJYrWh8GQT5JpemzMSuXIkfA/exec
+Backend URL embedded in app.js:
+https://script.google.com/macros/s/AKfycbwHKOa8BaWfVWoqf0IFhZxayXNfNRifoep4If9H_ToE37V_5QXRsdnfKmqIpAQg1gdE7g/exec
 
-Upload/replace these three files in the root of your GitHub proctor-exam repository:
+Files to upload/replace in GitHub repository root:
 - index.html
 - app.js
 - style.css
 
 Enhancements:
-- Loading overlay while verifying candidate after Continue
-- Loading overlay while starting assessment
-- Existing submission/finalization spinner retained
-- No Apps Script change or redeployment required for this update
+- 40-question Master Bank support
+- Part A-E labels
+- Option E support
+- Shared passage display for Parts B/E
+- Structured table display for Parts A/D
+- Existing camera/fullscreen/violation/autosave/submission behavior retained

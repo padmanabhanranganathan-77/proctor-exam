@@ -1,11 +1,11 @@
 /*
- * PROCTOR EXAM v4.1 - DIRECT RPC
+ * PROCTOR EXAM v5.0 - MASTER BANK UI
  *
  * IMPORTANT:
  * Replace this with the PERSONAL Apps Script /exec URL.
  */
 const APPS_SCRIPT_WEB_APP_URL =
-  'https://script.google.com/macros/s/AKfycbxIDWbBNVLfnb9Sz4SVmYH-NXctIZtNR92E4gH1b6UOucxJYrWh8GQT5JpemzMSuXIkfA/exec';
+  'https://script.google.com/macros/s/AKfycbwHKOa8BaWfVWoqf0IFhZxayXNfNRifoep4If9H_ToE37V_5QXRsdnfKmqIpAQg1gdE7g/exec';
 
 let rpcCounter = 0;
 
@@ -477,97 +477,157 @@ async function beginExam(){
 /* ==================== QUESTIONS ==================== */
 
 function renderQuestion(){
-  const q =
-    questions[currentQuestion];
+  const q = questions[currentQuestion];
+  if(!q) return;
 
-  if(!q){
-    return;
-  }
+  document.getElementById('qNum').textContent = currentQuestion + 1;
 
-  document
-    .getElementById('qNum')
-    .textContent =
-      currentQuestion + 1;
+  const partText = q.part ? ('Part ' + q.part + ' · ') : '';
+  const displayNo = q.questionNo || (currentQuestion + 1);
+  document.getElementById('questionLabel').textContent =
+    partText + 'Question ' + displayNo + ' of ' + questions.length;
 
-  document
-    .getElementById('questionLabel')
-    .textContent =
-      'Question ' +
-      (currentQuestion + 1) +
-      ' of ' +
-      questions.length;
+  renderQuestionResource(q.resource || null);
 
-  document
-    .getElementById('questionText')
-    .textContent =
-      q.question;
+  document.getElementById('questionText').textContent = q.question || '';
 
-  const options =
-    document.getElementById('options');
-
+  const options = document.getElementById('options');
   options.innerHTML = '';
 
-  q.options.forEach(o=>{
-    const label =
-      document.createElement('label');
+  (q.options || []).forEach(o=>{
+    const label = document.createElement('label');
+    label.className = 'option';
 
-    label.className =
-      'option';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'answer';
+    radio.value = o.key;
+    radio.checked = answers[q.id] === o.key;
 
-    const radio =
-      document.createElement('input');
+    radio.addEventListener('change', ()=>{
+      answers[q.id] = o.key;
+      renderQuestionNav();
+      rpc('saveAnswer', {
+        sessionId: session.sessionId,
+        questionId: q.id,
+        answer: o.key
+      }).catch(()=>{});
+    });
 
-    radio.type =
-      'radio';
-
-    radio.name =
-      'answer';
-
-    radio.value =
-      o.key;
-
-    radio.checked =
-      answers[q.id] === o.key;
-
-    radio.addEventListener(
-      'change',
-      ()=>{
-        answers[q.id] =
-          o.key;
-
-        renderQuestionNav();
-
-        rpc(
-          'saveAnswer',
-          {
-            sessionId:
-              session.sessionId,
-
-            questionId:
-              q.id,
-
-            answer:
-              o.key
-          }
-        ).catch(()=>{});
-      }
-    );
-
-    const text =
-      document.createElement('span');
-
-    text.textContent =
-      o.key +
-      '. ' +
-      o.text;
-
+    const text = document.createElement('span');
+    text.textContent = o.key + '. ' + o.text;
     label.appendChild(radio);
     label.appendChild(text);
-
     options.appendChild(label);
   });
 
   renderQuestionNav();
+}
+
+function renderQuestionResource(resource){
+  const box = document.getElementById('resourcePanel');
+  if(!box) return;
+
+  box.innerHTML = '';
+  box.classList.add('hidden');
+  if(!resource) return;
+
+  box.classList.remove('hidden');
+
+  if(resource.title){
+    const title = document.createElement('h3');
+    title.className = 'resource-title';
+    title.textContent = resource.title;
+    box.appendChild(title);
+  }
+
+  if(resource.instructions){
+    const instructions = document.createElement('p');
+    instructions.className = 'resource-instructions';
+    instructions.textContent = resource.instructions;
+    box.appendChild(instructions);
+  }
+
+  const type = String(resource.type || '').toUpperCase();
+  if(type === 'PASSAGE'){
+    const passage = document.createElement('div');
+    passage.className = 'resource-passage';
+    String(resource.content || '').split(/\n\s*\n/).forEach(p=>{
+      if(!p.trim()) return;
+      const para = document.createElement('p');
+      para.textContent = p.trim();
+      passage.appendChild(para);
+    });
+    box.appendChild(passage);
+  }else if(type === 'TABLE'){
+    box.appendChild(buildResourceTable(resource));
+  }else if(resource.content){
+    const content = document.createElement('div');
+    content.className = 'resource-passage';
+    content.textContent = resource.content;
+    box.appendChild(content);
+  }
+}
+
+function buildResourceTable(resource){
+  const wrap = document.createElement('div');
+  wrap.className = 'resource-table-wrap';
+  const id = String(resource.id || '');
+  const rows = resource.tableRows || [];
+
+  if(id === 'RES_A_TABLE'){
+    const table = document.createElement('table');
+    table.className = 'resource-table';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>Branch</th><th>Year 1</th><th>Year 2</th><th>Year 3</th><th>Year 4</th><th>Year 5</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rows.filter(r=>r.section === 'Operating Cost').forEach(r=>{
+      const tr = document.createElement('tr');
+      [r.rowLabel,r.col1,r.col2,r.col3,r.col4,r.col5].forEach(v=>{
+        const td=document.createElement('td'); td.textContent=v; tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody); wrap.appendChild(table); return wrap;
+  }
+
+  if(id === 'RES_D_TABLE'){
+    const summaries = {};
+    const grades = {A:{},B:{},C:{}};
+    rows.forEach(r=>{
+      if(r.section === 'Mill Summary') summaries[r.rowLabel]=r;
+      if(r.section === 'Grade A') grades.A[r.rowLabel]=r;
+      if(r.section === 'Grade B') grades.B[r.rowLabel]=r;
+      if(r.section === 'Grade C') grades.C[r.rowLabel]=r;
+    });
+    const table=document.createElement('table'); table.className='resource-table textile-table';
+    const thead=document.createElement('thead');
+    thead.innerHTML='<tr><th>Mill</th><th>Daily Capacity</th><th>Grade A<br>$140</th><th>Grade B<br>$115</th><th>Grade C<br>$95</th><th>Total Output</th></tr>';
+    table.appendChild(thead);
+    const tbody=document.createElement('tbody');
+    ['Mill 1','Mill 2','Mill 3','Mill 4','Mill 5'].forEach(mill=>{
+      const tr=document.createElement('tr');
+      const vals=[mill, summaries[mill]?.col1 || '',
+        formatGradeCell(grades.A[mill]), formatGradeCell(grades.B[mill]),
+        formatGradeCell(grades.C[mill]), summaries[mill]?.col2 || ''];
+      vals.forEach((v,i)=>{ const td=document.createElement('td'); td.textContent=v; if(i>=2&&i<=4) td.className='grade-cell'; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody); wrap.appendChild(table);
+    const note=document.createElement('p'); note.className='resource-note';
+    note.textContent='Each grade cell shows: output bolts · % of that grade total · % of that mill total.';
+    wrap.appendChild(note); return wrap;
+  }
+
+  const pre=document.createElement('pre'); pre.className='resource-raw';
+  pre.textContent=(resource.content || '') + '\n' + rows.map(r=>[r.section,r.rowLabel,r.col1,r.col2,r.col3,r.col4,r.col5,r.col6].filter(Boolean).join(' | ')).join('\n');
+  wrap.appendChild(pre); return wrap;
+}
+
+function formatGradeCell(r){
+  if(!r) return '';
+  return [r.col1, r.col2 ? (r.col2 + '% grade') : '', r.col3 ? (r.col3 + '% mill') : ''].filter(Boolean).join(' · ');
 }
 
 function renderQuestionNav(){
