@@ -1,5 +1,5 @@
 /*
- * PROCTOR EXAM v5.0 - MASTER BANK UI
+ * PROCTOR EXAM v5.1 - SAFE SUBMISSION UI
  *
  * IMPORTANT:
  * Replace this with the PERSONAL Apps Script /exec URL.
@@ -26,6 +26,7 @@ let awayReason = null;
 let lastAwayCloseAt = 0;
 let cameraViolationOpen = false;
 let fullscreenViolationOpen = false;
+let submissionInProgress = false;
 
 /* ==================== DIRECT RPC / JSONP ==================== */
 
@@ -53,7 +54,7 @@ window.addEventListener('load', async function(){
   }
 });
 
-function rpc(action, payload){
+function rpc(action, payload, timeoutMs){
   return new Promise((resolve, reject)=>{
     const id =
       'rpc_' +
@@ -98,7 +99,7 @@ function rpc(action, payload){
             'Server request timed out.'
           )
         );
-      }, 30000);
+      }, Math.max(5000, Number(timeoutMs || 30000)));
 
     window[callbackName] = function(data){
       if(completed){
@@ -1206,64 +1207,94 @@ function manualSubmit(){
 }
 
 async function submitExam(reason){
-  if(!examActive){
+  if(!examActive || submissionInProgress){
     return;
   }
 
-  examActive =
-    false;
+  submissionInProgress = true;
+  examActive = false;
 
   showSubmitLoader('Submitting Assessment…');
 
-  clearInterval(
-    timerHandle
-  );
-
-  clearInterval(
-    autosaveHandle
-  );
+  clearInterval(timerHandle);
+  clearInterval(autosaveHandle);
 
   try{
-    const result =
-      await rpc(
-        'submitExam',
-        {
-          sessionId:
-            session.sessionId,
-
-          answers:
-            answers,
-
-          reason:
-            reason,
-
-          violationCount:
-            violationCount
-        }
-      );
-
-    finishExam(
-      result
+    // Final submission can legitimately take longer than a normal autosave.
+    // Give Apps Script up to two minutes before treating it as delayed.
+    const result = await rpc(
+      'submitExam',
+      {
+        sessionId: session.sessionId,
+        answers: answers,
+        reason: reason,
+        violationCount: violationCount
+      },
+      120000
     );
 
-  }catch(err){
-    hideSubmitLoader();
+    submissionInProgress = false;
+    finishExam(result);
 
-    examActive =
-      true;
+  }catch(err){
+    // A browser timeout does not prove that Apps Script failed. The server may
+    // have finished just after the callback window closed, so verify status
+    // before allowing the candidate to retry.
+    showSubmitLoader('Confirming Submission…');
+
+    const recovered = await recoverSubmissionStatus();
+    if(recovered && recovered.completed){
+      submissionInProgress = false;
+      finishExam(recovered);
+      return;
+    }
+
+    hideSubmitLoader();
+    submissionInProgress = false;
+    examActive = true;
+    startTimer();
+    startAutosave();
 
     alert(
-      'Submission could not be completed. Please try again.\n\n' +
+      'The server has not yet confirmed your submission. Your answers remain on this screen. ' +
+      'Please wait a few seconds and press Submit Exam again.\n\n' +
       (err.message || '')
     );
   }
 }
 
+async function recoverSubmissionStatus(){
+  for(let attempt = 1; attempt <= 5; attempt++){
+    try{
+      const status = await rpc(
+        'getSubmissionStatus',
+        {sessionId: session.sessionId},
+        20000
+      );
+
+      if(status && status.completed){
+        return status;
+      }
+    }catch(e){}
+
+    if(attempt < 5){
+      await delay(2500);
+    }
+  }
+
+  return null;
+}
+
+function delay(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function terminateExam(reason){
-  if(!examActive){
+  if(!examActive || submissionInProgress){
     return;
   }
 
+  submissionInProgress = true;
   examActive =
     false;
 
@@ -1293,7 +1324,8 @@ async function terminateExam(reason){
 
           violationCount:
             violationCount
-        }
+        },
+        120000
       );
 
     finishExam(
@@ -1306,6 +1338,7 @@ async function terminateExam(reason){
 }
 
 function finishExam(result){
+  submissionInProgress = false;
   hideSubmitLoader();
 
   try{
