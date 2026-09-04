@@ -5,7 +5,7 @@
  * Replace this with the PERSONAL Apps Script /exec URL.
  */
 const APPS_SCRIPT_WEB_APP_URL =
-  'PASTE_YOUR_PERSONAL_APPS_SCRIPT_EXEC_URL_HERE';
+  'https://script.google.com/macros/s/AKfycbwNzP-UPhqfXaHpZ5RIZKOatNFVq2Zvy5bMHZXZTrQhBlq8KJq8lCDdnHhSOWdcMNyo0A/exec';
 
 let rpcCounter = 0;
 const pendingRpc = new Map();
