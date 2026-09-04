@@ -157,6 +157,21 @@ function rpc(action, payload){
   });
 }
 
+
+function showBusy(title, message){
+  const overlay = document.getElementById('busyOverlay');
+  if(!overlay) return;
+  const h = overlay.querySelector('[data-busy-title]');
+  const p = overlay.querySelector('[data-busy-message]');
+  if(h) h.textContent = title || 'Please wait…';
+  if(p) p.textContent = message || 'Processing your request.';
+  overlay.classList.remove('hidden');
+}
+function hideBusy(){
+  const overlay = document.getElementById('busyOverlay');
+  if(overlay) overlay.classList.add('hidden');
+}
+
 /* ==================== CAMERA ==================== */
 
 async function enableCamera(){
@@ -323,6 +338,8 @@ async function loginCandidate(){
     return;
   }
 
+  showBusy('Verifying Candidate…', 'Please wait while your Candidate ID and PIN are verified.');
+
   try{
     session = await rpc(
       'loginCandidate',
@@ -357,9 +374,11 @@ async function loginCandidate(){
       .textContent =
         session.candidateName;
 
+    hideBusy();
     showView('readyView');
 
   }catch(err){
+    hideBusy();
     setText(
       'loginMsg',
       err.message
@@ -386,12 +405,15 @@ async function beginExam(){
       .requestFullscreen();
 
   }catch(err){
+    hideBusy();
     setText(
       'readyMsg',
       'Fullscreen permission is required. Please click Start Exam again.'
     );
     return;
   }
+
+  showBusy('Starting Assessment…', 'Please wait while your questions and timer are prepared.');
 
   try{
     const result =
@@ -437,6 +459,7 @@ async function beginExam(){
       .textContent =
         '0';
 
+    hideBusy();
     showView('examView');
 
     renderQuestion();
