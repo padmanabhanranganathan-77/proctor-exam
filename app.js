@@ -1,14 +1,13 @@
 /*
- * PROCTOR EXAM v3.3 - NO BRIDGE
+ * PROCTOR EXAM v4.0 - DIRECT RPC
  *
  * IMPORTANT:
  * Replace this with the PERSONAL Apps Script /exec URL.
  */
 const APPS_SCRIPT_WEB_APP_URL =
-  'https://script.google.com/macros/s/AKfycbwNzP-UPhqfXaHpZ5RIZKOatNFVq2Zvy5bMHZXZTrQhBlq8KJq8lCDdnHhSOWdcMNyo0A/exec';
+  'PASTE_YOUR_PERSONAL_APPS_SCRIPT_EXEC_URL_HERE';
 
 let rpcCounter = 0;
-const pendingRpc = new Map();
 
 let publicConfig = null;
 let session = null;
@@ -28,7 +27,7 @@ let lastAwayCloseAt = 0;
 let cameraViolationOpen = false;
 let fullscreenViolationOpen = false;
 
-/* ==================== RPC ==================== */
+/* ==================== DIRECT RPC / JSONP ==================== */
 
 window.addEventListener('load', async function(){
   if(APPS_SCRIPT_WEB_APP_URL.includes('PASTE_YOUR_')){
@@ -54,35 +53,6 @@ window.addEventListener('load', async function(){
   }
 });
 
-window.addEventListener('message', function(event){
-  const data = event.data || {};
-
-  if(
-    data.type !== 'PROCTOR_RPC_RESPONSE' ||
-    !data.id
-  ){
-    return;
-  }
-
-  const pending = pendingRpc.get(data.id);
-
-  if(!pending){
-    return;
-  }
-
-  pendingRpc.delete(data.id);
-
-  cleanupRpcNode(data.id);
-
-  if(data.ok){
-    pending.resolve(data.result);
-  }else{
-    pending.reject(
-      new Error(data.error || 'Backend error')
-    );
-  }
-});
-
 function rpc(action, payload){
   return new Promise((resolve, reject)=>{
     const id =
@@ -91,83 +61,100 @@ function rpc(action, payload){
       '_' +
       (++rpcCounter);
 
-    pendingRpc.set(
-      id,
-      {resolve, reject}
-    );
+    const callbackName =
+      '__proctorRpcCallback_' +
+      Date.now() +
+      '_' +
+      rpcCounter;
 
-    const host =
-      document.getElementById('rpcHost');
+    const script =
+      document.createElement('script');
 
-    const iframe =
-      document.createElement('iframe');
+    let completed = false;
 
-    iframe.name = id;
-    iframe.id = 'frame_' + id;
-    iframe.style.display = 'none';
+    const cleanup = ()=>{
+      try{
+        delete window[callbackName];
+      }catch(e){
+        window[callbackName] = undefined;
+      }
 
-    const form =
-      document.createElement('form');
+      if(script.parentNode){
+        script.parentNode.removeChild(script);
+      }
+    };
 
-    form.method = 'POST';
-    form.action = APPS_SCRIPT_WEB_APP_URL;
-    form.target = id;
-    form.id = 'form_' + id;
-    form.style.display = 'none';
+    const timeout =
+      setTimeout(()=>{
+        if(completed){
+          return;
+        }
 
-    addHidden(form, 'id', id);
-    addHidden(form, 'action', action);
-    addHidden(
-      form,
-      'payload',
-      JSON.stringify(payload || {})
-    );
-
-    host.appendChild(iframe);
-    host.appendChild(form);
-
-    form.submit();
-
-    setTimeout(()=>{
-      if(pendingRpc.has(id)){
-        pendingRpc.delete(id);
-        cleanupRpcNode(id);
+        completed = true;
+        cleanup();
 
         reject(
           new Error(
             'Server request timed out.'
           )
         );
+      }, 30000);
+
+    window[callbackName] = function(data){
+      if(completed){
+        return;
       }
-    }, 30000);
+
+      completed = true;
+      clearTimeout(timeout);
+      cleanup();
+
+      if(data && data.ok){
+        resolve(data.result);
+      }else{
+        reject(
+          new Error(
+            (data && data.error) ||
+            'Backend error'
+          )
+        );
+      }
+    };
+
+    const params =
+      new URLSearchParams();
+
+    params.set('callback', callbackName);
+    params.set('id', id);
+    params.set('action', action);
+    params.set('payload', JSON.stringify(payload || {}));
+    params.set('_', String(Date.now()));
+
+    script.async = true;
+
+    script.onerror = function(){
+      if(completed){
+        return;
+      }
+
+      completed = true;
+      clearTimeout(timeout);
+      cleanup();
+
+      reject(
+        new Error(
+          'Unable to load response from examination server.'
+        )
+      );
+    };
+
+    script.src =
+      APPS_SCRIPT_WEB_APP_URL +
+      '?' +
+      params.toString();
+
+    document.head.appendChild(script);
   });
-}
-
-function addHidden(form, name, value){
-  const input =
-    document.createElement('input');
-
-  input.type = 'hidden';
-  input.name = name;
-  input.value = value;
-
-  form.appendChild(input);
-}
-
-function cleanupRpcNode(id){
-  const frame =
-    document.getElementById('frame_' + id);
-
-  const form =
-    document.getElementById('form_' + id);
-
-  if(frame){
-    frame.remove();
-  }
-
-  if(form){
-    form.remove();
-  }
 }
 
 /* ==================== CAMERA ==================== */
